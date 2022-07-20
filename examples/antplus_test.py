@@ -2,13 +2,14 @@ from ant.antplus.controller import AntPlusController
 from ant.antplus.fec import FECDevice
 from ant.antplus.bsc import BSBCDevice
 from ant.antplus.pwr import PwrDevice
+from ant.antplus.hrm import HrmDevice
 
 import logging
 import time  # for show_status time.sleep quick & dirty
 
 # logging.basicConfig(filename='antplus_test.log',level=logging.INFO, format='%(asctime)s %(message)s')
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(message)s"
+    level=logging.FATAL, format="%(asctime)s %(message)s"
 )  # not logging to file means printing to console
 _logger = logging.getLogger("examples.antplus.test")
 
@@ -47,6 +48,7 @@ device_number, device_type, transmission_type
 fec = None
 bsc = None
 pwr = None
+hrm = None
 
 
 def start_fec():
@@ -65,6 +67,9 @@ def start_pwr():
     global pwr
     pwr = PwrDevice(controller.node, 6574, 11, 5)
 
+def start_hrm():
+    global hrm
+    hrm = HrmDevice(controller.node, 1, 120, 1)
 
 def fec_calibration_callback(data):
     print(data)
@@ -101,5 +106,37 @@ def stop():
         bsc.close()
     if pwr:
         pwr.close()
+    if hrm:
+        hrm.close()
     if controller:
         controller.close()
+
+
+"""
+Actual test
+
+Start an instance of the power and heart rate monitors and print the available data.
+The test is time limited, so the test can properly close the devices and ANT system before termination.
+"""
+
+start_hrm()
+start_pwr()
+
+for i in range(1, 60) :
+    time.sleep(0.5)
+
+    if pwr:
+        cur_pwr = pwr.status["instant_power"]
+        cur_cad = pwr.status["instant_cadence"]
+    else:
+        cur_pwr = -1
+        cur_cad = -1
+
+    if hrm:
+        cur_hr = hrm.status["calculated_heart_rate"]
+    else:
+        cur_hr = -1
+    
+    print("Active HR: %3d, Cadence: %3d, Power: %3d." % (cur_hr, cur_cad, cur_pwr))
+
+stop()
